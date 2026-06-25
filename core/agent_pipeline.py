@@ -32,11 +32,7 @@ production "agentic" pipelines start before teams introduce a full
 agent framework: you get observability, predictability and lower cost,
 at the expense of flexibility.
 
-In an interview, this is the key sentence to say:
-"I implemented an explicit retrieve-reason-generate pipeline rather
-than a fully autonomous agent loop, because it's more predictable,
-debuggable, and cheaper to run — and it's the same core pattern that
-agent frameworks like LangChain abstract away."
+
 ----------------------------------------------------------------------
 """
 
