@@ -1,0 +1,20 @@
+BrandOrbit — Vendor Sourcing Notes
+
+Vendor: Sunrise Packaging Co.
+Category: Rigid box packaging (matte finish)
+Agreed MOQ: 5,000 units per SKU
+Lead time: 35 days from PO confirmation
+Payment terms: 30% advance, 70% on dispatch
+Notes from call (July 2026): Sunrise flagged that raw board costs have risen
+~8% this quarter. They offered to hold current pricing if BrandOrbit commits
+to a 6-month volume agreement instead of PO-by-PO ordering. Sunrise also
+mentioned they supply two other unnamed D2C brands in our space and could
+offer bundled volume discounts if order sizes were combined.
+
+Vendor: Northline Print Solutions
+Category: Inserts and thank-you cards
+Agreed MOQ: 2,000 units
+Lead time: 12 days
+Risk flag: Northline is currently our only vendor for this category — no
+backup vendor identified yet for inserts. If Northline has a delay, BrandOrbit
+has no fallback for this SKU category.

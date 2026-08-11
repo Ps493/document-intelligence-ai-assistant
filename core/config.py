@@ -37,5 +37,12 @@ CHUNK_OVERLAP = 50     # overlap between consecutive chunks
 # --- Retrieval settings ---
 TOP_K_RESULTS = 3  # how many chunks to retrieve per question
 
+# --- Think9: relevance threshold ---
+# L2 distance above this means "the best match still isn't actually relevant" —
+# tuned empirically for all-MiniLM-L6-v2 + short chunks. Below this = confident
+# enough to answer directly; above this = flag as low-confidence / decline
+# rather than let the LLM guess from weak context. See agent_pipeline.py.
+RELEVANCE_DISTANCE_THRESHOLD = 1.0
+
 # --- Logging ---
 LOG_FILE_PATH = "logs/app.log"

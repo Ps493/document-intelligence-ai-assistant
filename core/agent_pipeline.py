@@ -39,6 +39,7 @@ at the expense of flexibility.
 from core.vector_store import VectorStore
 from core.llm_client import LLMClient
 from core.logger import get_logger
+from core.config import RELEVANCE_DISTANCE_THRESHOLD
 
 logger = get_logger(__name__)
 
@@ -64,11 +65,21 @@ class DocumentAgentPipeline:
     # ------------------------------------------------------------------
     # TASK 1: Question Answering (classic RAG)
     # ------------------------------------------------------------------
-    def answer_question(self, question: str) -> dict:
+    def answer_question(self, question: str, metadata_filter: dict | None = None) -> dict:
         """
         Full RAG flow for answering a question about the document.
         Returns a dict with the answer AND the intermediate steps,
         so the UI can show "what the agent did" transparently.
+
+        Think9 additions:
+        - `metadata_filter`: optional brand/function scoping, passed straight
+          through to VectorStore.search (e.g. {"brand": "BrandA"}).
+        - Confidence gate: if the best retrieved chunk's distance is above
+          RELEVANCE_DISTANCE_THRESHOLD, the pipeline declines to answer from
+          weak context instead of letting the LLM guess. This is the
+          "relevance-threshold filter" described in the architecture doc —
+          it's what separates a retrieval system from a system that hallucinates
+          confidently when nothing relevant was actually found.
         """
         # STEP 1: INPUT
         self._log_step("INPUT", f"User question: {question}")
@@ -77,7 +88,27 @@ class DocumentAgentPipeline:
 
         # STEP 2: RETRIEVE
         self._log_step("RETRIEVE", "Searching vector store for relevant chunks")
-        retrieved = self.vector_store.search(question)
+        retrieved = self.vector_store.search(question, metadata_filter=metadata_filter)
+
+        # CONFIDENCE GATE (Think9 addition)
+        best_distance = min((r["distance"] for r in retrieved), default=float("inf"))
+        is_confident = best_distance <= RELEVANCE_DISTANCE_THRESHOLD
+
+        if not retrieved or not is_confident:
+            self._log_step("REASON", f"Best distance {best_distance:.3f} exceeds threshold "
+                                       f"{RELEVANCE_DISTANCE_THRESHOLD} — declining instead of guessing")
+            self._log_step("DONE", "Returning low-confidence decline")
+            return {
+                "answer": ("I don't have enough relevant information in the ingested documents "
+                           "to answer that confidently. This has been routed for human review "
+                           "rather than guessed at."),
+                "retrieved_chunks": retrieved,
+                "confidence": "low",
+                "best_distance": best_distance,
+                "needs_human_review": True,
+                "steps": ["INPUT", "RETRIEVE", "CONFIDENCE_GATE", "DECLINE"],
+            }
+
         context_text = "\n\n---\n\n".join([r["chunk"] for r in retrieved])
 
         # STEP 3: REASON (prompt construction = where the "reasoning" plan happens)
@@ -101,7 +132,10 @@ class DocumentAgentPipeline:
         return {
             "answer": answer,
             "retrieved_chunks": retrieved,
-            "steps": ["INPUT", "RETRIEVE", "REASON", "GENERATE"],
+            "confidence": "high",
+            "best_distance": best_distance,
+            "needs_human_review": False,
+            "steps": ["INPUT", "RETRIEVE", "CONFIDENCE_GATE", "REASON", "GENERATE"],
         }
 
     # ------------------------------------------------------------------

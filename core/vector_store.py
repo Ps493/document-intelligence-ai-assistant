@@ -61,15 +61,29 @@ class VectorStore:
         self.embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
         self.index = None          # the FAISS index (created once we know vector size)
         self.chunks = []           # original text, so we can map vector -> text
+        self.metadata = []         # parallel list of {brand, function, date, source} dicts per chunk
         self.embedding_dim = None
 
-    def build_from_chunks(self, chunks: list[str]) -> None:
+    def build_from_chunks(self, chunks: list[str], metadata: list[dict] | None = None) -> None:
         """
         Embeds a list of text chunks and builds a fresh FAISS index from them.
-        Call this once per uploaded document.
+
+        `metadata` (Think9 addition): an optional list, same length as `chunks`,
+        where metadata[i] describes chunks[i] — e.g.
+            {"brand": "BrandA", "function": "vendor_notes", "date": "2026-07-01", "source": "vendor_call.txt"}
+        This is what turns a single-document Q&A tool into a multi-brand
+        institutional memory store: every chunk knows which brand/function it
+        came from, so retrieval can be scoped or left portfolio-wide on purpose.
+        If metadata is omitted, every chunk gets an empty dict (backward compatible
+        with the original single-document flow).
         """
         if not chunks:
             raise ValueError("Cannot build vector store from an empty list of chunks.")
+
+        if metadata is None:
+            metadata = [{} for _ in chunks]
+        if len(metadata) != len(chunks):
+            raise ValueError("metadata list must be the same length as chunks list.")
 
         logger.info(f"Embedding {len(chunks)} chunks...")
         embeddings = self.embedding_model.encode(
@@ -87,14 +101,49 @@ class VectorStore:
         self.index = faiss.IndexFlatL2(self.embedding_dim)
         self.index.add(embeddings)
         self.chunks = chunks
+        self.metadata = metadata
 
         logger.info(f"FAISS index built successfully with {self.index.ntotal} vectors "
                     f"(dimension={self.embedding_dim})")
 
-    def search(self, query: str, top_k: int = TOP_K_RESULTS) -> list[dict]:
+    def add_chunks(self, chunks: list[str], metadata: list[dict] | None = None) -> None:
+        """
+        Think9 addition: append more chunks to an EXISTING index instead of
+        rebuilding from scratch. This is what lets the shared institutional
+        memory grow as new brands/documents are ingested, instead of each
+        upload wiping the previous one.
+        """
+        if not chunks:
+            return
+        if metadata is None:
+            metadata = [{} for _ in chunks]
+        if len(metadata) != len(chunks):
+            raise ValueError("metadata list must be the same length as chunks list.")
+
+        embeddings = self.embedding_model.encode(
+            chunks, show_progress_bar=False, convert_to_numpy=True
+        ).astype("float32")
+
+        if self.index is None:
+            self.embedding_dim = embeddings.shape[1]
+            self.index = faiss.IndexFlatL2(self.embedding_dim)
+
+        self.index.add(embeddings)
+        self.chunks.extend(chunks)
+        self.metadata.extend(metadata)
+        logger.info(f"Appended {len(chunks)} chunks. Index now has {self.index.ntotal} vectors.")
+
+    def search(self, query: str, top_k: int = TOP_K_RESULTS, metadata_filter: dict | None = None) -> list[dict]:
         """
         Given a question, returns the top_k most semantically similar
         chunks along with their distance scores (lower distance = more similar).
+
+        `metadata_filter` (Think9 addition): optional dict like {"brand": "BrandA"}.
+        When set, only chunks whose metadata matches ALL given keys are eligible —
+        this is the brand-scoping mechanism described in the architecture doc.
+        Implemented as over-fetch-then-filter (simple and exact for a PoC-scale
+        index; a production multi-tenant vector DB would push this filter down
+        into the index itself for efficiency at scale).
         """
         if self.index is None:
             raise RuntimeError("Vector store is empty. Call build_from_chunks() first.")
@@ -103,17 +152,30 @@ class VectorStore:
             [query], convert_to_numpy=True
         ).astype("float32")
 
-        distances, indices = self.index.search(query_vector, top_k)
+        # Over-fetch when filtering, since some top matches may get filtered out.
+        fetch_k = top_k * 5 if metadata_filter else top_k
+        fetch_k = min(fetch_k, self.index.ntotal)
+        distances, indices = self.index.search(query_vector, fetch_k)
 
         results = []
-        for rank, (idx, dist) in enumerate(zip(indices[0], distances[0])):
-            if idx == -1:  # FAISS returns -1 if there are fewer results than top_k
+        for idx, dist in zip(indices[0], distances[0]):
+            if idx == -1:  # FAISS returns -1 if there are fewer results than requested
                 continue
+            chunk_meta = self.metadata[idx] if idx < len(self.metadata) else {}
+
+            if metadata_filter:
+                if not all(chunk_meta.get(k) == v for k, v in metadata_filter.items()):
+                    continue
+
             results.append({
-                "rank": rank + 1,
+                "rank": len(results) + 1,
                 "chunk": self.chunks[idx],
                 "distance": float(dist),
+                "metadata": chunk_meta,
             })
+            if len(results) >= top_k:
+                break
 
-        logger.info(f"Retrieved {len(results)} relevant chunks for query: '{query[:50]}...'")
+        logger.info(f"Retrieved {len(results)} relevant chunks for query: '{query[:50]}...' "
+                    f"(filter={metadata_filter})")
         return results

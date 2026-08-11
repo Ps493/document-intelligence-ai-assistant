@@ -1,0 +1,18 @@
+LuneSkin — Founder Sync Meeting Notes, 3 August 2026
+
+Attendees: LuneSkin brand lead, ops lead, Think9 central ops
+
+Decisions made:
+1. Q3 launch (new serum SKU) delayed by 3 weeks — moved from mid-August to
+   early September — due to Coastal Labs formulation lead time running
+   longer than originally quoted.
+2. Agreed to revisit packaging vendor consolidation with other Think9 brands
+   after ops flagged that Sunrise Packaging Co. is shared with BrandOrbit.
+3. Customer support flagged a recurring complaint theme: pump dispenser on
+   the existing serum bottle sometimes fails to prime on first use. Product
+   team to investigate replacement dispenser mechanism before next SKU launch.
+
+Action items:
+- Ops lead to request combined-volume quote from Sunrise Packaging Co.
+  covering both LuneSkin and BrandOrbit needs.
+- Product team to source 2 alternative pump dispenser vendors by mid-August.

@@ -8,6 +8,26 @@ explicit **Input → Retrieve → Reason → Generate** pipeline.
 Built as an improved, modular take on a single-file RAG demo — split into
 clean, single-responsibility modules with logging, error handling, and both
 a Streamlit UI and a Flask API.
+---
+
+## 🧠 Think9 PoC Extension (branch: `think9-poc`)
+
+This branch extends the base project into a multi-brand institutional-memory
+system for the Think9 AI & Intelligence Challenge:
+
+- **Live and working**: Institutional Memory Agent — multi-brand metadata
+  tagging, cumulative shared memory across uploads, brand-scoped retrieval,
+  and a confidence gate that declines to answer instead of hallucinating
+  when retrieval confidence is low (`core/agent_pipeline.py`, `core/vector_store.py`).
+- **Live and working (stub)**: Sourcing/Vendor Agent (`core/sourcing_agent.py`)
+  — reuses the exact same retrieval core with a different system prompt,
+  proving the architecture's pluggable-agent claim. See it surface a real
+  cross-brand vendor-bundling insight in `demo_think9_poc.py`.
+- **Designed, not built**: Consumer Insight Agent and Feedback Triage Agent
+  — architecture and role described in the submitted architecture document,
+  not implemented in this PoC given the timeline.
+- Run `python api.py`, then `python demo_think9_poc.py` in a second terminal
+  to see the full 4-step demo end-to-end.
 
 ---
 

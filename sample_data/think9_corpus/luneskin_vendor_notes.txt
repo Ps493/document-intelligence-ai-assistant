@@ -1,0 +1,18 @@
+LuneSkin — Vendor Sourcing Notes
+
+Vendor: Sunrise Packaging Co.
+Category: Rigid box packaging (matte finish)
+Agreed MOQ: 4,000 units per SKU
+Lead time: 35 days from PO confirmation
+Payment terms: 30% advance, 70% on dispatch
+Notes: Same vendor as BrandOrbit's packaging supplier. LuneSkin ordering
+independently at slightly smaller volumes. No coordination between brand
+teams on this vendor relationship as of now.
+
+Vendor: Coastal Labs Manufacturing
+Category: Skincare formulation & filling
+Agreed MOQ: 10,000 units
+Lead time: 50 days
+Notes from call (June 2026): Coastal Labs quoted a 15% volume discount if
+LuneSkin's order volume crosses 25,000 units/quarter. Currently ordering
+~14,000 units/quarter, well below the discount threshold.
